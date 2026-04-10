@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🤖 Metawurks AI Chatbot
 
-## Getting Started
+A modern, responsive chatbot interface built as part of my internship at **Metawurks AI**.
+This project focuses on delivering a clean UI/UX experience with real-time interaction features and modern frontend practices.
 
-First, run the development server:
+---
+
+## 🚀 Live Demo
+
+🔗https://chat-ui-three-sigma.vercel.app
+
+---
+
+## 👨‍💻 About the Project
+
+The **Metawurks AI Chatbot** is a web-based chat interface that simulates real-time conversation between a user and an AI assistant.
+It is designed with a focus on usability, responsiveness, and modern UI design.
+
+---
+
+## ✨ Features
+
+* 💬 Interactive chat interface (User & Bot messages)
+* 🌙 Dark / Light mode toggle
+* 🔄 Smooth auto-scrolling
+* ⌨️ Typing indicator
+* 🧹 Clear chat functionality
+* 📱 Fully responsive design
+* 🎨 Modern UI (gradient + glassmorphism style)
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend**
+
+* Next.js (App Router)
+* React.js
+* Tailwind CSS
+
+**Backend**
+
+* Next.js API Routes
+
+**Tools & Deployment**
+
+* Vercel
+* GitHub
+
+---
+
+
+
+## ⚙️ Installation & Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/your-username/your-repo.git
+cd your-repo
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run locally:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🌐 Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project is deployed using **Vercel**.
 
-## Learn More
+To deploy:
 
-To learn more about Next.js, take a look at the following resources:
+1. Push code to GitHub
+2. Import project in Vercel
+3. Click deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ⚠️ Notes
 
-## Deploy on Vercel
+* Currently uses **mock responses** due to API quota limitations
+* Can be extended with real AI APIs (OpenAI, etc.)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📚 Learnings
+
+* Advanced React & Next.js concepts
+* Tailwind CSS for modern UI design
+* State management and component structuring
+* Handling UI/UX improvements
+* Debugging and problem-solving in real projects
+
+---
+
+## 🔮 Future Improvements
+
+* 🤖 Real AI integration (OpenAI API)
+* 💾 Chat history persistence
+* 🔐 User authentication
+* 📊 Analytics & usage tracking
+
+---
+
+## 🙌 Acknowledgment
+
+Thanks to **Metawurks AI** for providing the opportunity to work on this project and enhance my full-stack development skills.
+
+---
+
+---
+
+⭐ If you like this project, consider giving it a star!
