@@ -16,6 +16,7 @@ export default function ChatWindow({
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [loading, setLoading] = useState(false);
   const [dark, setDark] = useState(false);
+  const [useSearch, setUseSearch] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const clearChat = () => setMessages([]);
@@ -44,49 +45,59 @@ export default function ChatWindow({
   }, [dark]);
 
   // SEND MESSAGE
-  const sendMessage = async (text: string) => {
+ const sendMessage = async (text: string, fileText?: string) => {
     if (!chatId) return;
 
-    const newMsg: MessageType = {
+    // ✅ USER MESSAGE
+    const userMsg: MessageType = {
       id: Date.now().toString(),
       content: text,
       role: "user",
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, newMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
+    // SAVE USER MESSAGE
     await fetch("/api/chat/save", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...newMsg, chatId }),
+      body: JSON.stringify({ ...userMsg, chatId }),
     });
 
     window.dispatchEvent(new Event("chat-updated"));
 
     try {
+      // 🤖 AI CALL
       const res = await fetch("/api/chat-ai", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: text }),
+       body: JSON.stringify({
+  message: text,
+  useSearch,
+  fileText,
+}),
       });
 
       const data = await res.json();
 
+      // ✅ BOT MESSAGE (WITH SOURCES)
       const botMsg: MessageType = {
         id: Date.now().toString(),
         content: data.reply,
         role: "assistant",
         timestamp: new Date().toLocaleTimeString(),
+        sources: data.sources || [],
       };
 
       setMessages((prev) => [...prev, botMsg]);
 
+      // SAVE BOT MESSAGE
       await fetch("/api/chat/save", {
         method: "POST",
         headers: {
@@ -118,13 +129,12 @@ export default function ChatWindow({
         {/* HEADER */}
         <div className="px-6 py-4 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl flex items-center justify-between dark:border-gray-700">
 
-          {/* LEFT SIDE (UPDATED) */}
+          {/* LEFT */}
           <div className="flex items-center gap-3">
 
-            {/* ☰ MOBILE MENU */}
             <button
               onClick={toggleSidebar}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
             >
               ☰
             </button>
@@ -137,25 +147,27 @@ export default function ChatWindow({
                 Smart assistant for your queries
               </p>
             </div>
-
           </div>
 
-          {/* RIGHT SIDE */}
-          <div className="flex items-center gap-3">
+          {/* RIGHT */}
+          <div className="flex items-center gap-2">
 
-            {/* DARK MODE */}
+            {/* 🌐 SEARCH TOGGLE */}
+            <button
+              onClick={() => setUseSearch(!useSearch)}
+              className={`px-3 py-1 text-xs rounded-full border transition ${
+                useSearch
+                  ? "bg-green-500 text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white"
+              }`}
+            >
+              🌐 {useSearch ? "ON" : "OFF"}
+            </button>
+
+            {/* DARK */}
             <button
               onClick={() => setDark(!dark)}
-              className="relative px-4 py-1.5 text-xs font-semibold rounded-full
-              bg-white/60 dark:bg-gray-800/60
-              backdrop-blur-md
-              border border-white/30 dark:border-gray-700
-              text-gray-800 dark:text-gray-200
-              shadow-[0_4px_20px_rgba(0,0,0,0.1)]
-              hover:shadow-[0_6px_25px_rgba(0,0,0,0.15)]
-              hover:scale-[1.03]
-              active:scale-[0.97]
-              transition-all duration-300 ease-out"
+              className="px-3 py-1 text-xs rounded-full border bg-white/60 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
             >
               {dark ? "☀️" : "🌙"}
             </button>
@@ -163,14 +175,7 @@ export default function ChatWindow({
             {/* CLEAR */}
             <button
               onClick={clearChat}
-              className="relative px-4 py-1.5 text-xs font-semibold rounded-full
-              bg-gradient-to-r from-red-500/90 to-pink-500/90
-              text-white
-              shadow-[0_4px_20px_rgba(255,0,0,0.25)]
-              hover:shadow-[0_6px_30px_rgba(255,0,0,0.35)]
-              hover:scale-[1.05]
-              active:scale-[0.95]
-              transition-all duration-300 ease-out"
+              className="px-3 py-1 text-xs rounded-full bg-red-500 text-white"
             >
               🗑
             </button>
@@ -179,7 +184,7 @@ export default function ChatWindow({
         </div>
 
         {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50 dark:bg-gray-800">
+        <div className="flex-1 overflow-y-auto custom-scroll px-6 py-4 space-y-4 bg-gray-50 dark:bg-gray-800">
           {!chatId && (
             <div className="text-center text-gray-400 text-sm mt-10">
               Select or create a chat 👈

@@ -1,37 +1,87 @@
-import Groq from "groq-sdk";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { webSearch } from "@/lib/webSearch";
+import { shouldUseSearch } from "@/lib/shouldSearch";
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const { message, useSearch } = await req.json();
 
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant. Keep answers short and clear.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-      model: "llama-3.1-8b-instant",
+    if (!message) {
+      return Response.json({
+        reply: "⚠️ No message provided",
+        sources: [],
+      });
+    }
+
+    let searchText = "";
+    let sources: { title: string; link: string }[] = [];
+
+    // 🌐 Decide if web search is needed
+    if (useSearch || shouldUseSearch(message)) {
+      try {
+        const result = await webSearch(message);
+
+        searchText = result?.text || "";
+        sources = result?.sources || [];
+      } catch (err) {
+        console.log("SEARCH ERROR:", err);
+      }
+    }
+
+    // 🧠 PROMPT
+    const prompt = `
+You are a smart AI assistant.
+
+- If web data is available, use it.
+- If not, answer normally.
+- Keep answers clear and helpful.
+
+User Question:
+${message}
+
+Web Data:
+${searchText}
+
+Answer:
+`;
+
+    // 🤖 GROQ API
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+      }),
     });
 
+    if (!res.ok) {
+      console.log("GROQ ERROR STATUS:", res.status);
+      return Response.json({
+        reply: "⚠️ AI service error",
+        sources,
+      });
+    }
+
+    const data = await res.json();
+
     const reply =
-      completion.choices[0]?.message?.content || "No response";
+      data?.choices?.[0]?.message?.content?.trim() ||
+      "⚠️ No response from AI";
 
-    return Response.json({ reply });
-
-  } catch (error) {
-    console.error(error);
     return Response.json({
-      reply: "⚠️ AI error",
+      reply,
+      sources,
+    });
+
+  } catch (err) {
+    console.log("API ERROR:", err);
+
+    return Response.json({
+      reply: "⚠️ Server error",
+      sources: [],
     });
   }
 }

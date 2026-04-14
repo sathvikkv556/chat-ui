@@ -3,4 +3,10 @@ export interface MessageType {
   content: string;
   role: "user" | "assistant";
   timestamp: string;
+
+  // ✅ NEW (for web search)
+  sources?: {
+    title: string;
+    link: string;
+  }[];
 }
