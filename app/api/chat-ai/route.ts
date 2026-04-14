@@ -13,27 +13,25 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are a helpful, friendly AI assistant. Give clear and short answers.",
+            "You are a helpful AI assistant. Keep answers short and clear.",
         },
         {
           role: "user",
           content: message,
         },
       ],
-      model: "llama-3.1-8b-instant", // ✅ FIXED MODEL
+      model: "llama-3.1-8b-instant",
     });
 
     const reply =
-      completion.choices[0]?.message?.content ||
-      "No response from AI";
+      completion.choices[0]?.message?.content || "No response";
 
     return Response.json({ reply });
 
   } catch (error) {
     console.error(error);
-
     return Response.json({
-      reply: "⚠️ Error connecting to AI",
+      reply: "⚠️ AI error",
     });
   }
 }
