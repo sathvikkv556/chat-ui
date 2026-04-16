@@ -85,6 +85,7 @@ export default function ChatWindow({
         headers: {
           "Content-Type": "application/json",
         },
+        credentials:"include",
         body: JSON.stringify({
           message: text,
           useSearch, // ✅ FIXED
