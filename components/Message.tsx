@@ -35,23 +35,24 @@ export default function Message({
           {msg.content}
         </p>
 
-        {/* SOURCES */}
-        {msg.sources?.length ? (
+        {/* 🌐 SOURCES */}
+        {msg.sources && msg.sources.length > 0 && (
           <div className="mt-2 text-xs space-y-1">
             {msg.sources.map((s, i) => (
               <a
-                key={i}
+                key={s.link || `src-${i}`} // ✅ FIXED KEY
                 href={s.link}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="block text-blue-500 hover:underline"
               >
                 🔗 {s.title}
               </a>
             ))}
           </div>
-        ) : null}
+        )}
 
-        {/* 🔥 ACTION ROW (BOTTOM LIKE CHATGPT) */}
+        {/* 🔥 ACTION ROW (BOTTOM) */}
         <div
           className={`flex items-center justify-between mt-2 ${
             isUser ? "text-white/70" : "text-gray-500 dark:text-gray-400"
@@ -64,7 +65,6 @@ export default function Message({
 
           {/* BUTTONS */}
           <div className="flex gap-2 text-xs">
-
             {/* COPY */}
             <button
               onClick={copyText}

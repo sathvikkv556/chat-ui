@@ -6,6 +6,7 @@ import InputArea from "./InputArea";
 import TypingDots from "./TypingDots";
 import { MessageType } from "@/types";
 import { useSession } from "next-auth/react";
+
 export default function ChatWindow({
   chatId,
   toggleSidebar,
@@ -14,16 +15,17 @@ export default function ChatWindow({
   toggleSidebar: () => void;
 }) {
   const { data: session } = useSession();
+
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [loading, setLoading] = useState(false);
   const [dark, setDark] = useState(false);
   const [useSearch, setUseSearch] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const clearChat = () => setMessages([]);
-  const generateId = () =>
-  Math.random().toString(36).substring(2) + Date.now();
-  // LOAD MESSAGES
+
+  // ✅ LOAD MESSAGES
   useEffect(() => {
     if (!chatId) return;
 
@@ -32,130 +34,151 @@ export default function ChatWindow({
       .then((data) => setMessages(data));
   }, [chatId]);
 
-  // AUTO SCROLL
+  // ✅ AUTO SCROLL
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // DARK MODE
+  // ✅ DARK MODE
   useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    if (dark) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
   }, [dark]);
+
+  // ✅ REGENERATE
   const regenerateResponse = async () => {
-  const lastUserMsg = [...messages]
-    .reverse()
-    .find((m) => m.role === "user");
+    const lastUserMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === "user");
 
-  if (!lastUserMsg) return;
+    if (!lastUserMsg) return;
 
-  sendMessage(lastUserMsg.content);
-};
-  // SEND MESSAGE
- const sendMessage = async (text: string) => {
-  if (!chatId) return;
-
-  const userMsg: MessageType = {
-    id: crypto.randomUUID(),
-    content: text,
-    role: "user",
-    timestamp: new Date().toLocaleTimeString(),
+    sendMessage(lastUserMsg.content);
   };
 
-  setMessages((prev) => [...prev, userMsg]);
+  // 🚀 SEND MESSAGE (FINAL FIXED)
+  const sendMessage = async (text: string) => {
+    if (!chatId || !text.trim()) return;
 
-  await fetch("/api/chat/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...userMsg, chatId }),
-  });
+    // ✅ USER MESSAGE
+    const userMsg: MessageType = {
+      id: crypto.randomUUID(),
+      content: text,
+      role: "user",
+      timestamp: new Date().toLocaleTimeString(),
+    };
 
-  setLoading(true);
+    setMessages((prev) => [...prev, userMsg]);
 
-  try {
-    const res = await fetch("/api/chat-ai", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ message: text }),
-});
+    // ✅ SAVE USER
+    await fetch("/api/chat/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...userMsg, chatId }),
+    });
 
-if (!res.body) throw new Error("No response body");
-
-const reader = res.body.getReader();
-const decoder = new TextDecoder();
-
-let fullText = "";
-let sources: any[] = [];
-
-const botMsg: MessageType = {
-  id: Date.now().toString(),
-  content: "",
-  role: "assistant",
-  timestamp: new Date().toLocaleTimeString(),
-};
-
-setMessages((prev) => [...prev, botMsg]);
-
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-
-  const chunk = decoder.decode(value);
-
-  // ✅ detect sources safely
-  if (chunk.includes("__SOURCES__")) {
-    const parts = chunk.split("__SOURCES__");
-
-    fullText += parts[0];
+    setLoading(true);
 
     try {
-      sources = JSON.parse(parts[1] || "[]");
-    } catch {
-      sources = [];
-    }
+      const res = await fetch("/api/chat-ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: text,
+          useSearch, // ✅ FIXED
+        }),
+      });
 
-    continue;
-  }
+      if (!res.body) throw new Error("No response body");
 
-  fullText += chunk;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
 
-  setMessages((prev) =>
-    prev.map((m) =>
-      m.id === botMsg.id
-        ? { ...m, content: fullText }
-        : m
-    )
-  );
-}
+      let fullText = "";
+      let sources: any[] = [];
 
-// ✅ final update
-setMessages((prev) =>
-  prev.map((m) =>
-    m.id === botMsg.id
-      ? { ...m, content: fullText, sources }
-      : m
-  )
-);
+      // 🔥 STABLE ID (CRITICAL FIX)
+      const botId = crypto.randomUUID();
 
-  } catch {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        content: "⚠️ Error",
+      const botMsg: MessageType = {
+        id: botId,
+        content: "",
         role: "assistant",
         timestamp: new Date().toLocaleTimeString(),
-      },
-    ]);
-  }
+      };
 
-  setLoading(false);
-};
+      setMessages((prev) => [...prev, botMsg]);
+
+      // 🔥 STREAM LOOP
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        // ✅ HANDLE SOURCES
+        if (chunk.includes("__SOURCES__")) {
+          const parts = chunk.split("__SOURCES__");
+
+          fullText += parts[0];
+
+          try {
+            sources = JSON.parse(parts[1] || "[]");
+          } catch {
+            sources = [];
+          }
+
+          continue;
+        }
+
+        fullText += chunk;
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botId
+              ? { ...m, content: fullText }
+              : m
+          )
+        );
+      }
+
+      // ✅ FINAL UPDATE WITH SOURCES
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botId
+            ? { ...m, content: fullText, sources }
+            : m
+        )
+      );
+
+      // ✅ SAVE BOT MESSAGE
+      await fetch("/api/chat/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId,
+          content: fullText,
+          role: "assistant",
+        }),
+      });
+    } catch (err) {
+      console.log("CHAT ERROR:", err);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          content: "⚠️ Error",
+          role: "assistant",
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
+    }
+
+    setLoading(false);
+  };
   return (
     <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 dark:from-gray-900 dark:to-black">
       
@@ -233,11 +256,10 @@ setMessages((prev) =>
             </div>
           )}
 
-          {messages.map((msg) => (
+{messages.map((msg, index) => (
   <Message
-    key={msg.id}
+    key={msg.id || `msg-${index}`} // ✅ STRONG KEY
     msg={msg}
-    onRegenerate={regenerateResponse}
   />
 ))}
 
