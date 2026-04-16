@@ -1,22 +1,27 @@
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Message from "@/models/Message";
-import {connectDB} from "@/lib/mongodb";
 
 export async function POST(req: Request) {
-  await connectDB();
+  try {
+    const session = await getServerSession(authOptions);
 
-  const session = await getServerSession();
+    if (!session || !session.user) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
-  if (!session) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const { chatId, content, role } = await req.json();
+
+    await Message.create({
+      chatId,
+      userId: session.user.id, // ✅ FIX
+      content,
+      role,
+    });
+
+    return Response.json({ success: true });
+  } catch (err) {
+    console.log(err);
+    return new Response("Error", { status: 500 });
   }
-
-  const body = await req.json();
-
-  const msg = await Message.create({
-    ...body,
-    userId: session.user?.email, // ✅ ADD USER
-  });
-
-  return Response.json(msg);
 }

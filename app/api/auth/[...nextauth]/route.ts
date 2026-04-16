@@ -4,7 +4,7 @@ import GitHubProvider from "next-auth/providers/github";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -17,7 +17,7 @@ const handler = NextAuth({
   ],
 
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account }: any) {
       await connectDB();
 
       const existingUser = await User.findOne({ email: user.email });
@@ -34,15 +34,35 @@ const handler = NextAuth({
       return true;
     },
 
-   async session({ session, token }) {
-    if (session.user) {
-      session.user.id = token.sub as string ; // ✅ FIX
-    }
+    async jwt({ token, user }: any) {
+      if (user) {
+        token.sub = user.id || token.sub;
+      }
+      return token;
+    },
+
+    async session({ session, token }: any) {
+      if (session.user) {
+        session.user.id = token.sub;
+      }
       return session;
     },
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
-});
+  cookies: {
+    sessionToken: {
+      name: "__Secure-next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+  },
 
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

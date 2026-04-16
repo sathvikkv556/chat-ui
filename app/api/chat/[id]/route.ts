@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import Message from "@/models/Message";
 import {connectDB} from "@/lib/mongodb";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function GET(
   req: Request,
@@ -8,7 +9,7 @@ export async function GET(
 ) {
   await connectDB();
 
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   const { id } = await params;
 
   if (!session) {

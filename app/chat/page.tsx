@@ -1,15 +1,14 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import ChatClient from "./ChatClient";
 
 export default async function ChatPage() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
 
-  // ❌ Not logged in → go to login
   if (!session) {
     redirect("/login");
   }
 
-  // ✅ Logged in → show chat
   return <ChatClient />;
 }

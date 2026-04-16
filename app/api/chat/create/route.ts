@@ -1,11 +1,12 @@
 import { getServerSession } from "next-auth";
 import Chat from "@/models/Chat";
 import { connectDB } from "@/lib/mongodb";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
   await connectDB();
 
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

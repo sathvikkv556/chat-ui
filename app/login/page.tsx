@@ -2,41 +2,51 @@
 
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // ✅ Auto redirect if already logged in
   useEffect(() => {
-    if (session) {
-      window.location.href = "/chat";
+    if (status === "authenticated") {
+      router.push("/chat");
     }
-  }, [session]);
+  }, [status, router]);
 
   const handleLogin = async () => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ email, password }),
     });
 
     const data = await res.json();
 
     if (data.success) {
-      window.location.href = "/chat";
+      router.push("/chat");
     } else {
       alert(data.error);
     }
   };
 
+  if (status === "loading") {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 dark:from-gray-900 dark:to-black">
-
       <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-6">
 
-        {/* TITLE */}
         <div className="text-center">
           <h1 className="text-xl font-semibold dark:text-white">
             🔐 Welcome Back
@@ -46,7 +56,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* EMAIL LOGIN */}
         <div className="space-y-3">
           <input
             type="email"
@@ -72,12 +81,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* DIVIDER */}
-        <div className="text-center text-xs text-gray-400">
-          OR
-        </div>
+        <div className="text-center text-xs text-gray-400">OR</div>
 
-        {/* GOOGLE */}
         <button
           onClick={() => signIn("google", { callbackUrl: "/chat" })}
           className="w-full border py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
@@ -85,21 +90,12 @@ export default function LoginPage() {
           🔵 Continue with Google
         </button>
 
-        {/* GITHUB */}
         <button
           onClick={() => signIn("github", { callbackUrl: "/chat" })}
           className="w-full border py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           🐙 Continue with GitHub
         </button>
-
-        {/* SIGNUP */}
-        <p className="text-center text-xs text-gray-500">
-          Don’t have an account?{" "}
-          <a href="/signup" className="text-blue-500">
-            Sign up
-          </a>
-        </p>
       </div>
     </div>
   );
