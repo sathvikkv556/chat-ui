@@ -1,11 +1,14 @@
 import mongoose from "mongoose";
 
-const ChatSchema = new mongoose.Schema({
+const chatSchema = new mongoose.Schema({
   title: String,
-  createdAt: {
-    type: Date,
-    default: Date.now,
+
+  // ✅ ADD THIS
+  userId: {
+    type: String,
+    required: true,
   },
 });
 
-export default mongoose.models.Chat || mongoose.model("Chat", ChatSchema);
+export default mongoose.models.Chat ||
+  mongoose.model("Chat", chatSchema);

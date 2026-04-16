@@ -5,7 +5,7 @@ import Message from "./Message";
 import InputArea from "./InputArea";
 import TypingDots from "./TypingDots";
 import { MessageType } from "@/types";
-
+import { useSession } from "next-auth/react";
 export default function ChatWindow({
   chatId,
   toggleSidebar,
@@ -13,6 +13,7 @@ export default function ChatWindow({
   chatId: string | null;
   toggleSidebar: () => void;
 }) {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [loading, setLoading] = useState(false);
   const [dark, setDark] = useState(false);
@@ -20,7 +21,8 @@ export default function ChatWindow({
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const clearChat = () => setMessages([]);
-
+  const generateId = () =>
+  Math.random().toString(36).substring(2) + Date.now();
   // LOAD MESSAGES
   useEffect(() => {
     if (!chatId) return;
@@ -43,89 +45,129 @@ export default function ChatWindow({
       document.documentElement.classList.remove("dark");
     }
   }, [dark]);
+  const regenerateResponse = async () => {
+  const lastUserMsg = [...messages]
+    .reverse()
+    .find((m) => m.role === "user");
 
+  if (!lastUserMsg) return;
+
+  sendMessage(lastUserMsg.content);
+};
   // SEND MESSAGE
- const sendMessage = async (text: string, fileText?: string) => {
-    if (!chatId) return;
+ const sendMessage = async (text: string) => {
+  if (!chatId) return;
 
-    // ✅ USER MESSAGE
-    const userMsg: MessageType = {
-      id: Date.now().toString(),
-      content: text,
-      role: "user",
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setLoading(true);
-
-    // SAVE USER MESSAGE
-    await fetch("/api/chat/save", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...userMsg, chatId }),
-    });
-
-    window.dispatchEvent(new Event("chat-updated"));
-
-    try {
-      // 🤖 AI CALL
-      const res = await fetch("/api/chat-ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-       body: JSON.stringify({
-  message: text,
-  useSearch,
-  fileText,
-}),
-      });
-
-      const data = await res.json();
-
-      // ✅ BOT MESSAGE (WITH SOURCES)
-      const botMsg: MessageType = {
-        id: Date.now().toString(),
-        content: data.reply,
-        role: "assistant",
-        timestamp: new Date().toLocaleTimeString(),
-        sources: data.sources || [],
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
-
-      // SAVE BOT MESSAGE
-      await fetch("/api/chat/save", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ...botMsg, chatId }),
-      });
-
-    } catch {
-      const errorMsg: MessageType = {
-        id: Date.now().toString(),
-        content: "⚠️ Error getting response",
-        role: "assistant",
-        timestamp: new Date().toLocaleTimeString(),
-      };
-
-      setMessages((prev) => [...prev, errorMsg]);
-    }
-
-    setLoading(false);
+  const userMsg: MessageType = {
+    id: crypto.randomUUID(),
+    content: text,
+    role: "user",
+    timestamp: new Date().toLocaleTimeString(),
   };
 
+  setMessages((prev) => [...prev, userMsg]);
+
+  await fetch("/api/chat/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...userMsg, chatId }),
+  });
+
+  setLoading(true);
+
+  try {
+    const res = await fetch("/api/chat-ai", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ message: text }),
+});
+
+if (!res.body) throw new Error("No response body");
+
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+
+let fullText = "";
+let sources: any[] = [];
+
+const botMsg: MessageType = {
+  id: Date.now().toString(),
+  content: "",
+  role: "assistant",
+  timestamp: new Date().toLocaleTimeString(),
+};
+
+setMessages((prev) => [...prev, botMsg]);
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value);
+
+  // ✅ detect sources safely
+  if (chunk.includes("__SOURCES__")) {
+    const parts = chunk.split("__SOURCES__");
+
+    fullText += parts[0];
+
+    try {
+      sources = JSON.parse(parts[1] || "[]");
+    } catch {
+      sources = [];
+    }
+
+    continue;
+  }
+
+  fullText += chunk;
+
+  setMessages((prev) =>
+    prev.map((m) =>
+      m.id === botMsg.id
+        ? { ...m, content: fullText }
+        : m
+    )
+  );
+}
+
+// ✅ final update
+setMessages((prev) =>
+  prev.map((m) =>
+    m.id === botMsg.id
+      ? { ...m, content: fullText, sources }
+      : m
+  )
+);
+
+  } catch {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        content: "⚠️ Error",
+        role: "assistant",
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
+  }
+
+  setLoading(false);
+};
   return (
     <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 dark:from-gray-900 dark:to-black">
       
       {/* MAIN CONTAINER */}
       <div className="w-full max-w-3xl h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl flex flex-col overflow-hidden">
 
+          <button
+  onClick={toggleSidebar}
+  className="md:hidden mr-2 text-lg"
+>
+  ☰
+</button>
         {/* HEADER */}
         <div className="px-6 py-4 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl flex items-center justify-between dark:border-gray-700">
 
@@ -191,9 +233,13 @@ export default function ChatWindow({
             </div>
           )}
 
-          {messages.map((msg: any, index) => (
-            <Message key={msg._id || msg.id || index} msg={msg} />
-          ))}
+          {messages.map((msg) => (
+  <Message
+    key={msg.id}
+    msg={msg}
+    onRegenerate={regenerateResponse}
+  />
+))}
 
           {loading && <TypingDots />}
 

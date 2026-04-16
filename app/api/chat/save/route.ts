@@ -1,36 +1,22 @@
-import { connectDB } from "@/lib/mongodb";
+import { getServerSession } from "next-auth";
 import Message from "@/models/Message";
-import Chat from "@/models/Chat";
+import {connectDB} from "@/lib/mongodb";
 
 export async function POST(req: Request) {
   await connectDB();
 
-  const data = await req.json();
+  const session = await getServerSession();
 
-  // SAVE MESSAGE
-  const message = await Message.create(data);
-
-  // 🔥 AUTO TITLE FIX (robust)
-  if (data.role === "user") {
-    const chat = await Chat.findById(data.chatId);
-
-    if (chat) {
-      // normalize check (important)
-      const isDefaultTitle =
-        !chat.title || chat.title.trim().toLowerCase() === "new chat";
-
-      if (isDefaultTitle) {
-        chat.title = data.content
-          .slice(0, 40)        // limit length
-          .replace(/\n/g, " ") // remove new lines
-          .trim();
-
-        await chat.save();
-
-        console.log("✅ Title updated:", chat.title);
-      }
-    }
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return Response.json(message);
+  const body = await req.json();
+
+  const msg = await Message.create({
+    ...body,
+    userId: session.user?.email, // ✅ ADD USER
+  });
+
+  return Response.json(msg);
 }

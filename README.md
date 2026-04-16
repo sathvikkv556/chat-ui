@@ -17,6 +17,27 @@ The **Metawurks AI Chatbot** is a web-based chat interface that simulates real-t
 It is designed with a focus on usability, responsiveness, and modern UI design.
 
 ---
+## Data Flow (End-to-End)
+
+User types message
+      ↓
+Frontend sends → /api/chat-ai
+      ↓
+Backend:
+   → check search need
+   → fetch web data (optional)
+   → call Groq AI
+      ↓
+Response returned:
+   → reply
+   → sources
+      ↓
+Frontend displays:
+   → message bubble
+   → clickable links
+      ↓
+(Optional) Save to MongoDB
+
 
 ## ✨ Features
 

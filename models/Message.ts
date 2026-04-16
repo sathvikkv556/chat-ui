@@ -1,10 +1,18 @@
 import mongoose from "mongoose";
 
-const MessageSchema = new mongoose.Schema({
+const messageSchema = new mongoose.Schema({
   chatId: String,
-  role: String,
+
+  // ✅ ADD THIS
+  userId: {
+    type: String,
+    required: true,
+  },
+
   content: String,
+  role: String,
   timestamp: String,
 });
 
-export default mongoose.models.Message || mongoose.model("Message", MessageSchema);
+export default mongoose.models.Message ||
+  mongoose.model("Message", messageSchema);
