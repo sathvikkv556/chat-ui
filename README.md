@@ -39,106 +39,129 @@ Frontend displays:
 (Optional) Save to MongoDB
 
 
-## ✨ Features
+### 🔐 Authentication
 
-* 💬 Interactive chat interface (User & Bot messages)
-* 🌙 Dark / Light mode toggle
-* 🔄 Smooth auto-scrolling
-* ⌨️ Typing indicator
-* 🧹 Clear chat functionality
-* 📱 Fully responsive design
-* 🎨 Modern UI (gradient + glassmorphism style)
+* Google OAuth login
+* GitHub OAuth login
+* Session-based authentication using NextAuth
+* Secure cookies (production-ready)
+
+### 💬 Chat System
+
+* Multiple chat threads per user
+* Persistent chat history (MongoDB)
+* User-specific conversations
+* Auto chat title generation
+
+### ⚡ AI Integration
+
+* Streaming responses (real-time typing effect)
+* Integrated with Groq (LLaMA 3.1)
+* Regenerate responses
+* Copy message feature
+
+### 🌐 Web Search
+
+* Conditional web search (Serper API)
+* Sources displayed with responses
+* Toggle web search per message
+
+### 🎨 UI/UX
+
+* Modern glassmorphism UI
+* Dark / Light mode support
+* Responsive (mobile + desktop)
+* Sidebar with chat management
+* Rename & delete chats
+
+### 📦 Backend
+
+* REST APIs using Next.js App Router
+* MongoDB Atlas database
+* Structured models (User, Chat, Message)
+* Clean separation of concerns
 
 ---
 
-## 🛠️ Tech Stack
+## 🏗️ Tech Stack
 
-**Frontend**
-
-* Next.js (App Router)
-* React.js
-* Tailwind CSS
-
-**Backend**
-
-* Next.js API Routes
-
-**Tools & Deployment**
-
-* Vercel
-* GitHub
+* **Frontend:** Next.js, React, TailwindCSS
+* **Backend:** Next.js API Routes
+* **Database:** MongoDB Atlas
+* **Authentication:** NextAuth (Google + GitHub)
+* **AI:** Groq API (LLaMA 3.1)
+* **Web Search:** Serper API
+* **Deployment:** Vercel
 
 ---
 
+## ⚙️ Environment Variables
 
+```env
+NEXTAUTH_URL=https://your-app.vercel.app
+NEXTAUTH_SECRET=your_secret
 
-## ⚙️ Installation & Setup
+GOOGLE_CLIENT_ID=your_google_id
+GOOGLE_CLIENT_SECRET=your_google_secret
 
-Clone the repository:
+GITHUB_CLIENT_ID=your_github_id
+GITHUB_CLIENT_SECRET=your_github_secret
 
-```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+MONGODB_URI=your_mongodb_connection
+
+GROQ_API_KEY=your_groq_key
+SERPER_API_KEY=your_serper_key
 ```
 
-Install dependencies:
+---
+
+## 🚀 Setup Instructions
 
 ```bash
+git clone https://github.com/your-repo/chat-ui.git
+cd chat-ui
 npm install
-```
-
-Run locally:
-
-```bash
 npm run dev
 ```
 
 ---
 
-## 🌐 Deployment
+## 📁 Project Structure
 
-This project is deployed using **Vercel**.
-
-To deploy:
-
-1. Push code to GitHub
-2. Import project in Vercel
-3. Click deploy
-
----
-
-## ⚠️ Notes
-
-* Currently uses **mock responses** due to API quota limitations
-* Can be extended with real AI APIs (OpenAI, etc.)
+```
+app/
+  api/
+    auth/
+    chat/
+    chat-ai/
+components/
+lib/
+models/
+types/
+```
 
 ---
 
-## 📚 Learnings
+## 🔥 Key Highlights
 
-* Advanced React & Next.js concepts
-* Tailwind CSS for modern UI design
-* State management and component structuring
-* Handling UI/UX improvements
-* Debugging and problem-solving in real projects
-
----
-
-## 🔮 Future Improvements
-
-* 🤖 Real AI integration (OpenAI API)
-* 💾 Chat history persistence
-* 🔐 User authentication
-* 📊 Analytics & usage tracking
+* Production-ready authentication flow
+* Streaming AI responses (ChatGPT-like)
+* User-specific data handling
+* Clean scalable architecture
+* Fully deployed on Vercel
 
 ---
 
-## 🙌 Acknowledgment
+## 📌 Future Improvements
 
-Thanks to **Metawurks AI** for providing the opportunity to work on this project and enhance my full-stack development skills.
+* Markdown & code block rendering
+* Rate limiting & API protection
+* Chat export/download
+* Advanced prompt memory
 
 ---
 
----
 
-⭐ If you like this project, consider giving it a star!
+
+
+
