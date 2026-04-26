@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 
 export default function Sidebar({ onSelect }: any) {
-  const { data: session } = useSession();
-
+  const { data: session } = useSession(); // ✅ FIXED
   const [chats, setChats] = useState<any[]>([]);
   const [active, setActive] = useState<string | null>(null);
 
@@ -26,7 +25,7 @@ export default function Sidebar({ onSelect }: any) {
   const createChat = async () => {
     const res = await fetch("/api/chat/create", {
       method: "POST",
-      body: JSON.stringify({ title: "New Chat" }),
+      body: JSON.stringify({ title: "New Conversation" }),
     });
 
     const chat = await res.json();
@@ -87,41 +86,69 @@ export default function Sidebar({ onSelect }: any) {
     fetchChats();
   }, []);
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredChats = chats.filter((chat) =>
+    (chat.title || "New Chat").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div
       className="w-72 h-screen 
-      bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900
-      text-gray-900 dark:text-white 
-      flex flex-col border-r border-gray-200 dark:border-gray-700"
+      bg-[#fcfcfd] dark:bg-[#0d1117]
+      text-slate-900 dark:text-slate-100
+      flex flex-col border-r border-slate-200 dark:border-slate-800 transition-colors duration-300"
     >
       {/* HEADER */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-lg font-semibold">💬 Chats</h1>
+      <div className="p-6 flex items-center justify-between pb-4">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          Metawurks
+        </h1>
+        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+      </div>
+
+      {/* SEARCH */}
+      <div className="px-4 mb-3">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+          <input
+            type="text"
+            placeholder="Search chats..."
+            className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-2 pl-8 pr-4 text-xs focus:ring-1 focus:ring-blue-500/30 outline-none transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* NEW CHAT */}
-      <div className="p-4">
+      <div className="px-4 mb-4">
         <button
           onClick={createChat}
-          className="w-full bg-blue-500 hover:bg-blue-600 transition rounded-lg py-2 text-sm font-medium shadow-md"
+          className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 
+          hover:opacity-90 transition-all duration-300 rounded-xl py-2.5 text-sm font-semibold shadow-lg active:scale-[0.98]"
         >
           + New Chat
         </button>
       </div>
 
       {/* CHAT LIST */}
-      <div className="flex-1 overflow-y-auto px-3 space-y-2">
-        {chats.map((chat) => {
+      <div className="flex-1 overflow-y-auto px-3 space-y-1.5 custom-scroll">
+        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2">
+          {searchTerm ? "Search Results" : "Recent Conversations"}
+        </div>
+        {filteredChats.map((chat) => {
           const isEditing = editingId === chat._id;
+          const isActive = active === chat._id;
 
           return (
             <div
               key={chat._id}
-              className={`relative group flex items-center justify-between p-3 rounded-lg cursor-pointer transition text-sm
+              className={`relative group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200
                 ${
-                  active === chat._id
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  isActive
+                    ? "bg-slate-200/50 dark:bg-slate-800/60 ring-1 ring-slate-300 dark:ring-slate-700"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800/30"
                 }
               `}
               onClick={() => {
@@ -129,29 +156,35 @@ export default function Sidebar({ onSelect }: any) {
                 onSelect(chat._id);
               }}
             >
-              {/* TITLE / INPUT */}
-              {isEditing ? (
-                <input
-                  autoFocus
-                  defaultValue={chat.title}
-                  className="bg-transparent outline-none text-sm w-full"
-                  onBlur={(e) =>
-                    handleRename(chat._id, e.target.value)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleRename(
-                        chat._id,
-                        (e.target as HTMLInputElement).value
-                      );
+              <div className="flex items-center gap-3 truncate">
+                 <span className="text-lg opacity-60">
+                   {isActive ? "💬" : "🗨️"}
+                 </span>
+                
+                {/* TITLE / INPUT */}
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    defaultValue={chat.title}
+                    className="bg-transparent outline-none text-sm w-full font-medium"
+                    onBlur={(e) =>
+                      handleRename(chat._id, e.target.value)
                     }
-                  }}
-                />
-              ) : (
-                <div className="truncate flex-1">
-                  {chat.title || "New Chat"}
-                </div>
-              )}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleRename(
+                          chat._id,
+                          (e.target as HTMLInputElement).value
+                        );
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className={`truncate text-sm font-medium ${isActive ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400"}`}>
+                    {chat.title || "New Chat"}
+                  </div>
+                )}
+              </div>
 
               {/* THREE DOTS */}
               <button
@@ -161,7 +194,7 @@ export default function Sidebar({ onSelect }: any) {
                     menuOpenId === chat._id ? null : chat._id
                   );
                 }}
-                className="ml-2 text-lg opacity-0 group-hover:opacity-100"
+                className="ml-2 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-300/40 dark:hover:bg-slate-700/50 opacity-0 group-hover:opacity-100 transition-all"
               >
                 ⋯
               </button>
@@ -171,35 +204,33 @@ export default function Sidebar({ onSelect }: any) {
                 <div
                   ref={menuRef}
                   className="absolute right-2 top-10 z-50 
-                  bg-white dark:bg-gray-800 
-                  border border-gray-200 dark:border-gray-700 
-                  rounded-xl shadow-xl overflow-hidden 
-                  text-sm w-36 py-1"
+                  bg-white dark:bg-[#1a1f26] 
+                  border border-slate-200 dark:border-slate-800 
+                  rounded-xl shadow-2xl overflow-hidden 
+                  text-sm w-40 py-1.5 animate-fade-in"
                 >
-                  {/* RENAME */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingId(chat._id);
                       setMenuOpenId(null);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 
-                    hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                    className="w-full flex items-center gap-3 px-4 py-2 
+                    hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   >
-                    ✏️ Rename
+                    <span>✏️</span> Rename
                   </button>
 
-                  {/* DELETE */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(chat._id);
                       setMenuOpenId(null);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 
-                    text-red-500 hover:bg-red-500 hover:text-white transition"
+                    className="w-full flex items-center gap-3 px-4 py-2 
+                    text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
                   >
-                    🗑 Delete
+                    <span>🗑</span> Delete
                   </button>
                 </div>
               )}
@@ -209,43 +240,51 @@ export default function Sidebar({ onSelect }: any) {
       </div>
 
       {/* USER PROFILE */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 relative">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
         <div
           onClick={() => setShowMenu(!showMenu)}
           className="flex items-center gap-3 cursor-pointer 
-          bg-gray-100 dark:bg-gray-800 
-          hover:bg-gray-200 dark:hover:bg-gray-700 
-          rounded-lg px-3 py-2 transition"
+          hover:bg-slate-100 dark:hover:bg-slate-800/40 
+          rounded-xl px-3 py-2.5 transition-all duration-200 relative"
         >
           {/* AVATAR */}
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold text-white">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-lg">
             {session?.user?.name?.[0]?.toUpperCase() || "U"}
           </div>
 
           {/* USERNAME */}
-          <div className="text-sm truncate">
-            {session?.user?.name || "User"}
+          <div className="flex-1 overflow-hidden">
+            <div className="text-sm font-bold truncate">
+              {session?.user?.name|| "User"}
+            </div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-tight">
+              Premium Account
+            </div>
           </div>
-        </div>
+          
+          <div className="text-slate-400">
+            {showMenu ? "↓" : "↑"}
+          </div>
 
-        {/* DROPDOWN */}
-        {showMenu && (
-          <div
-            ref={menuRef}
-            className="absolute bottom-14 left-4 right-4 
-            bg-white dark:bg-gray-800 
-            border border-gray-200 dark:border-gray-700 
-            rounded-lg shadow-lg overflow-hidden"
-          >
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="w-full text-center px-4 py-2 text-sm 
-              hover:bg-red-500 hover:text-white transition"
+          {/* DROPDOWN */}
+          {showMenu && (
+            <div
+              ref={menuRef}
+              className="absolute bottom-full left-0 right-0 mb-2
+              bg-white dark:bg-[#1a1f26] 
+              border border-slate-200 dark:border-slate-800 
+              rounded-xl shadow-2xl overflow-hidden animate-fade-in"
             >
-              🚪 Logout
-            </button>
-          </div>
-        )}
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold
+                text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
+              >
+                Logout Account
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

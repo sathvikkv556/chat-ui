@@ -19,7 +19,7 @@ export async function GET(
   const messages = await Message.find({
     chatId: id,
     userId: session.user?.email, // ✅ FILTER USER
-  });
+  }).sort({ createdAt: 1 });
 
   return Response.json(messages);
 }

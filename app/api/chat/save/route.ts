@@ -10,13 +10,14 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { chatId, content, role } = await req.json();
+    const { chatId, content, role, timestamp } = await req.json();
 
     await Message.create({
       chatId,
-      userId: session.user.id, // ✅ FIX
+      userId: session.user.email, // ✅ MATCHES GET ROUTE
       content,
       role,
+      timestamp,
     });
 
     return Response.json({ success: true });

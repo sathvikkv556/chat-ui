@@ -23,15 +23,21 @@ export default function ChatWindow({
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const clearChat = () => setMessages([]);
-
   // ✅ LOAD MESSAGES
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId) {
+      setMessages([]);
+      return;
+    }
 
+    setLoading(true);
     fetch(`/api/chat/${chatId}`)
       .then((res) => res.json())
-      .then((data) => setMessages(data));
+      .then((data) => {
+        setMessages(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [chatId]);
 
   // ✅ AUTO SCROLL
@@ -45,27 +51,35 @@ export default function ChatWindow({
     else document.documentElement.classList.remove("dark");
   }, [dark]);
 
-  // ✅ REGENERATE
-  const regenerateResponse = async () => {
-    const lastUserMsg = [...messages]
-      .reverse()
-      .find((m) => m.role === "user");
+  const clearChat = async () => {
+    if (!chatId) return;
 
-    if (!lastUserMsg) return;
+    // Optimistic UI update
+    setMessages([]);
 
-    sendMessage(lastUserMsg.content);
+    try {
+      await fetch("/api/chat/delete-messages", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId }),
+      });
+    } catch (err) {
+      console.error("Failed to clear messages:", err);
+    }
   };
 
   // 🚀 SEND MESSAGE (FINAL FIXED)
   const sendMessage = async (text: string) => {
     if (!chatId || !text.trim()) return;
 
-    // ✅ USER MESSAGE
+    // Check if it's the first message to rename the thread
+    const isFirstMessage = messages.length === 0;
+
     const userMsg: MessageType = {
       id: crypto.randomUUID(),
       content: text,
       role: "user",
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -76,6 +90,16 @@ export default function ChatWindow({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...userMsg, chatId }),
     });
+
+    // Auto-rename chat title if it's the first message
+    if (isFirstMessage) {
+      const newTitle = text.length > 30 ? text.substring(0, 30) + "..." : text;
+      fetch("/api/chat/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId, title: newTitle }),
+      }).catch(err => console.error("Failed to rename chat:", err));
+    }
 
     setLoading(true);
 
@@ -88,7 +112,7 @@ export default function ChatWindow({
         credentials:"include",
         body: JSON.stringify({
           message: text,
-          useSearch, // ✅ FIXED
+          useSearch,
         }),
       });
 
@@ -100,37 +124,27 @@ export default function ChatWindow({
       let fullText = "";
       let sources: any[] = [];
 
-      // 🔥 STABLE ID (CRITICAL FIX)
       const botId = crypto.randomUUID();
 
       const botMsg: MessageType = {
         id: botId,
         content: "",
         role: "assistant",
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, botMsg]);
 
-      // 🔥 STREAM LOOP
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
 
-        // ✅ HANDLE SOURCES
         if (chunk.includes("__SOURCES__")) {
           const parts = chunk.split("__SOURCES__");
-
           fullText += parts[0];
-
-          try {
-            sources = JSON.parse(parts[1] || "[]");
-          } catch {
-            sources = [];
-          }
-
+          try { sources = JSON.parse(parts[1] || "[]"); } catch { sources = []; }
           continue;
         }
 
@@ -145,7 +159,6 @@ export default function ChatWindow({
         );
       }
 
-      // ✅ FINAL UPDATE WITH SOURCES
       setMessages((prev) =>
         prev.map((m) =>
           m.id === botId
@@ -154,7 +167,6 @@ export default function ChatWindow({
         )
       );
 
-      // ✅ SAVE BOT MESSAGE
       await fetch("/api/chat/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,116 +174,116 @@ export default function ChatWindow({
           chatId,
           content: fullText,
           role: "assistant",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }),
       });
     } catch (err) {
       console.log("CHAT ERROR:", err);
-
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
-          content: "⚠️ Error",
+          content: "⚠️ Error generating response",
           role: "assistant",
-          timestamp: new Date().toLocaleTimeString(),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     }
 
     setLoading(false);
   };
+
   return (
-    <div className="relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 dark:from-gray-900 dark:to-black">
+    <div className="h-screen flex flex-col bg-white dark:bg-[#0d1117] transition-colors duration-300">
       
-      {/* MAIN CONTAINER */}
-      <div className="w-full max-w-3xl h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl flex flex-col overflow-hidden">
+      {/* HEADER - Floating Glass Effect */}
+      <header className="sticky top-0 z-10 w-full px-3 md:px-4 py-3 flex items-center justify-between glass border-b-0 shadow-sm dark:shadow-none">
+        <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+          >
+            <span className="text-xl">≡</span>
+          </button>
+          
+          <div className="truncate">
+            <h1 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 truncate">
+              <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0"></span>
+              <span className="truncate">Groq Llama 3.1</span>
+            </h1>
+            <p className="text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider truncate">
+              {loading ? "AI is processing..." : "Ready for instructions"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 md:gap-3">
+          <button
+            onClick={() => setUseSearch(!useSearch)}
+            className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 text-[10px] md:text-[11px] font-bold rounded-lg border transition-all duration-300 ${
+              useSearch
+                ? "bg-blue-500/10 text-blue-600 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                : "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            <span className={`${useSearch ? "animate-pulse" : ""} text-xs md:text-sm`}>🌐</span>
+            <span className="hidden sm:inline">WEB SEARCH</span> {useSearch ? "ON" : "OFF"}
+          </button>
 
           <button
-  onClick={toggleSidebar}
-  className="md:hidden mr-2 text-lg"
->
-  ☰
-</button>
-        {/* HEADER */}
-        <div className="px-6 py-4 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl flex items-center justify-between dark:border-gray-700">
+            onClick={() => setDark(!dark)}
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm hover:scale-105 active:scale-95 transition-all shrink-0"
+          >
+            {dark ? "☀️" : "🌙"}
+          </button>
 
-          {/* LEFT */}
-          <div className="flex items-center gap-3">
-
-            <button
-              onClick={toggleSidebar}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              ☰
-            </button>
-
-            <div>
-              <h1 className="text-lg font-semibold dark:text-white">
-                🤖 Metawurks AI Chatbot
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Smart assistant for your queries
-              </p>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-2">
-
-            {/* 🌐 SEARCH TOGGLE */}
-            <button
-              onClick={() => setUseSearch(!useSearch)}
-              className={`px-3 py-1 text-xs rounded-full border transition ${
-                useSearch
-                  ? "bg-green-500 text-white"
-                  : "bg-white dark:bg-gray-800 text-gray-800 dark:text-white"
-              }`}
-            >
-              🌐 {useSearch ? "ON" : "OFF"}
-            </button>
-
-            {/* DARK */}
-            <button
-              onClick={() => setDark(!dark)}
-              className="px-3 py-1 text-xs rounded-full border bg-white/60 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-            >
-              {dark ? "☀️" : "🌙"}
-            </button>
-
-            {/* CLEAR */}
-            <button
-              onClick={clearChat}
-              className="px-3 py-1 text-xs rounded-full bg-red-500 text-white"
-            >
-              🗑
-            </button>
-
-          </div>
+          <button
+            onClick={clearChat}
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shrink-0"
+          >
+            🗑
+          </button>
         </div>
+      </header>
 
-        {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto custom-scroll px-6 py-4 space-y-4 bg-gray-50 dark:bg-gray-800">
-          {!chatId && (
-            <div className="text-center text-gray-400 text-sm mt-10">
-              Select or create a chat 👈
+      {/* CHAT AREA */}
+      <main className="flex-1 overflow-y-auto custom-scroll flex justify-center">
+        <div className="w-full max-w-3xl px-4 py-8 space-y-8">
+          {!chatId ? (
+            <div className="h-[70vh] flex flex-col items-center justify-center text-center animate-fade-in">
+              <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl shadow-2xl mb-6">
+                🤖
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">How can I help you today?</h2>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm">Select a conversation or start a new one to experience premium AI assistance.</p>
             </div>
+          ) : (
+            <>
+              {messages.map((msg, index) => (
+                <Message
+                  key={msg.id || `msg-${index}`}
+                  msg={msg}
+                />
+              ))}
+              {loading && (
+                <div className="flex justify-start animate-fade-in">
+                   <div className="px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                     <TypingDots />
+                   </div>
+                </div>
+              )}
+              <div ref={bottomRef} className="h-4" />
+            </>
           )}
-
-{messages.map((msg, index) => (
-  <Message
-    key={msg.id || `msg-${index}`} // ✅ STRONG KEY
-    msg={msg}
-  />
-))}
-
-          {loading && <TypingDots />}
-
-          <div ref={bottomRef} />
         </div>
+      </main>
 
-        {/* INPUT */}
-        {chatId && <InputArea onSend={sendMessage} />}
-      </div>
+      {/* INPUT AREA */}
+      <footer className="w-full flex justify-center pb-8 pt-2 px-4 bg-transparent pointer-events-none">
+        <div className="w-full max-w-3xl pointer-events-auto animate-fade-in">
+           {chatId && <InputArea onSend={sendMessage} />}
+        </div>
+      </footer>
     </div>
   );
 }

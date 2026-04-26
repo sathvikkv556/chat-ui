@@ -19,67 +19,71 @@ export default function Message({
     <div
       className={`flex ${
         isUser ? "justify-end" : "justify-start"
-      } animate-fadeIn`}
+      } animate-fade-in`}
     >
       <div
-        className={`px-4 py-3 rounded-2xl max-w-[75%] text-sm
-        backdrop-blur-md transition-all duration-300
-        ${
-          isUser
-            ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-[0_4px_20px_rgba(59,130,246,0.4)] rounded-br-none"
-            : "bg-white/70 dark:bg-gray-800/70 text-gray-800 dark:text-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-bl-none"
-        }`}
+        className={`relative group max-w-[85%] sm:max-w-[75%] transition-all duration-300`}
       >
-        {/* TEXT */}
-        <p className="leading-relaxed whitespace-pre-wrap">
-          {msg.content}
-        </p>
-
-        {/* 🌐 SOURCES */}
-        {msg.sources && msg.sources.length > 0 && (
-          <div className="mt-2 text-xs space-y-1">
-            {msg.sources.map((s, i) => (
-              <a
-                key={s.link || `src-${i}`} // ✅ FIXED KEY
-                href={s.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-blue-500 hover:underline"
-              >
-                🔗 {s.title}
-              </a>
-            ))}
-          </div>
-        )}
-
-        {/* 🔥 ACTION ROW (BOTTOM) */}
         <div
-          className={`flex items-center justify-between mt-2 ${
-            isUser ? "text-white/70" : "text-gray-500 dark:text-gray-400"
+          className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed shadow-sm
+          ${
+            isUser
+              ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-tr-none shadow-indigo-500/10"
+              : "bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-100 dark:border-slate-700/50 shadow-slate-200/50 dark:shadow-none"
           }`}
         >
-          {/* TIME */}
-          <span className="text-[10px]">
+          {/* TEXT */}
+          <p className="whitespace-pre-wrap font-medium">
+            {msg.content}
+          </p>
+
+          {/* 🌐 SOURCES */}
+          {msg.sources && msg.sources.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-200/50 dark:border-slate-700/50 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sources</p>
+              <div className="flex flex-wrap gap-2">
+                {msg.sources.map((s, i) => (
+                  <a
+                    key={s.link || `src-${i}`}
+                    href={s.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] text-blue-600 dark:text-blue-400 hover:border-blue-400 transition-colors"
+                  >
+                    <span className="text-[10px]">🔗</span> {s.title}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 🔥 ACTION ROW */}
+        <div
+          className={`flex items-center gap-3 mt-1.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+            isUser ? "flex-row-reverse" : "flex-row"
+          }`}
+        >
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
             {msg.timestamp}
           </span>
-
-          {/* BUTTONS */}
-          <div className="flex gap-2 text-xs">
-            {/* COPY */}
+          
+          <div className="flex gap-1">
             <button
               onClick={copyText}
-              className="px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition"
+              title="Copy message"
+              className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
-              📋
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
             </button>
 
-            {/* REGENERATE */}
             {!isUser && onRegenerate && (
               <button
                 onClick={() => onRegenerate(msg.content)}
-                className="px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition"
+                title="Regenerate response"
+                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
-                🔄
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
               </button>
             )}
           </div>
